@@ -8,4 +8,7 @@ license = "MIT"
 requires "nim >= 0.17.0"
 
 task co, "Compile":
-  exec "nim c -d:ssl --threads:on test.nim"
+  exec "nim c -d:ssl --threads:on slackclient.nim"
+
+task run, "Run":
+  exec "nim c -r -d:ssl --threads:on slackclient.nim --out:slackclient"
