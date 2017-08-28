@@ -2,6 +2,7 @@ import slacktypes
 import json, tables, strutils, httpclient, os, asyncdispatch
 
 proc initSlackRequest*(proxy: Proxy, customAgent: string): SlackRequest = 
+  ## Create and return a default slack request
 
   var customAgentSeq = newSeq[string](0)
   var defaultsUA = initTable[string, string]()

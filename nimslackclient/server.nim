@@ -1,4 +1,4 @@
-import httpclient, websocket, json
+import httpclient, websocket, json, strutils
 
 proc initRTM*(request: SlackRequest, domain = "slack.com", token: string): string = 
   ## Make an initial connection to slack and return a success string or failure string
@@ -17,5 +17,8 @@ proc initRTM*(request: SlackRequest, domain = "slack.com", token: string): strin
   
   return client.postContent(url, multipart = data)
 
-proc didInitSucceed(response: string): bool = 
-  return true
+proc didInitSucceed(response: JsonNode): bool = 
+  return response["ok"].getBVal()
+  
+proc initSlackServer*(token: string, connect: bool, proxy: Proxy): SlackServer =
+

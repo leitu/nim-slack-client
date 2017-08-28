@@ -11,9 +11,13 @@ type
     token: string
     username: string
     domain: string
+    websocket: asyncWebsocket
     loginData: JsonNode
     users: SinglyLinkedList[SlackUser]
     channels: SinglyLinkedList[SlackChannel]
+    connected: false
+    wsUrl: string
+    
 
   SlackUser* = ref object of RootObj
     id: int
@@ -27,6 +31,7 @@ type
     name: string
     server: SlackServer
     real_name: string
+    members: seq[User]
 
 type
   SlackRequest* = ref object of RootObj
