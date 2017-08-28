@@ -6,9 +6,11 @@ description = "Basic socket stuff with nim"
 license = "MIT"
 
 requires "nim >= 0.17.0"
+requires "websocket >= 0.2.1"
 
 task co, "Compile":
-  exec "nim c -d:ssl --threads:on slackclient.nim"
+  exec "nim c -d:ssl --threads:on nimslackclient.nim"
 
 task run, "Run":
-  exec "nim c -r -d:ssl --threads:on slackclient.nim --out:slackclient"
+  exec "mkdir -p bin"
+  exec "nim c -r -d:ssl --threads:on --out:bin/nimslackclient nimslackclient.nim"
