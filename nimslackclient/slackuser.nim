@@ -1,16 +1,11 @@
 from lists import SinglyLinkedList
-from slacktypes import SlackUser, SlackServer
+from slacktypes import SlackUser, SlackServer, TimeZone
 
-proc initSlackUser*(user_id: string, name: string, real_name: string = "", timezone: TimeZone = TimeZone(zone: "")): SlackUser = 
+proc initSlackUser*(user_id: string, name: string, real_name: string, email: string, timezone: TimeZone = TimeZone(zone: "UTC"), server: SlackServer = nil): SlackUser = 
   ## Create and return a user
-  result = SlackUser(name : name, real_name : real_name, timezone : timezone)
+  result = SlackUser(id: user_id, name: name, real_name: real_name, email: email, timezone: timezone, server: server)
 
-proc initSlackUser*(user_id: string, name: string, real_name: string = "", timezone: string = ""): SlackUser = 
+proc initSlackUser*(user_id: string, name: string, real_name: string = "", email: string = "", timezone: string = "UTC", server: SlackServer = nil): SlackUser = 
   ## handles tz as string
   let tz = TimeZone(zone: timezone)
-  result = SlackUser(name : name, real_name : real_name, timezone : tz)
-
-proc initSlackUserList*(): SinglyLinkedList = 
-  result = SinglyLinkedList()
-
-
+  result = initSlackUser(user_id = user_id, name = name, real_name = real_name, email = email, timezone = tz, server = server)

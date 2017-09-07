@@ -19,20 +19,29 @@ type
     channels: SinglyLinkedList[SlackChannel]
     connected: bool
     wsUrl: Uri
+    config: Config
 
   SlackUser* = ref object of RootObj
-    id: int
+    id: string
     name: string
     real_name: string
+    email: string
     server: SlackServer
     timezone: TimeZone
 
   SlackChannel* = ref object of RootObj 
-    id: int
+    id: string 
     name: string
     server: SlackServer
-    real_name: string
-    members: seq[SlackUser]
+    channel_members: seq[SlackUser]
+
+  Config* = object
+    WsPort*: string
+    BotName*: string
+    BotEmail*: string
+    BotTimeZone*: string #Must be a valid tz, ie "Australia/Sydney" https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+    BotToken*: string
+
 
 type
   SlackRequest* = ref object of RootObj
