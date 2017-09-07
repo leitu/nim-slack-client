@@ -9,8 +9,8 @@ requires "nim >= 0.17.0"
 requires "websocket >= 0.2.1"
 
 task co, "Compile":
-  exec "nim c -d:ssl --threads:on nimslackclient.nim"
+  exec "nim c -d:ssl nimslackclient.nim"
 
 task run, "Run":
   exec "mkdir -p bin"
-  exec "nim c -r -d:ssl --threads:on --out:bin/nimslackclient nimslackclient.nim"
+  exec "nim c -r -d:ssl --out:bin/nimslackclient nimslackclient.nim"

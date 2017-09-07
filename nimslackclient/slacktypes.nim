@@ -1,6 +1,7 @@
 import json, tables
 import httpclient
 from lists import SinglyLinkedList
+import websocket
 
 type
   TimeZone* = ref object of RootObj
@@ -11,13 +12,12 @@ type
     token: string
     username: string
     domain: string
-    websocket: asyncWebsocket
+    websocket: AsyncWebSocket
     loginData: JsonNode
     users: SinglyLinkedList[SlackUser]
     channels: SinglyLinkedList[SlackChannel]
-    connected: false
+    connected: bool
     wsUrl: string
-    
 
   SlackUser* = ref object of RootObj
     id: int
@@ -31,7 +31,7 @@ type
     name: string
     server: SlackServer
     real_name: string
-    members: seq[User]
+    members: seq[SlackUser]
 
 type
   SlackRequest* = ref object of RootObj

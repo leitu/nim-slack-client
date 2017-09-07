@@ -20,5 +20,5 @@ proc initRTM*(request: SlackRequest, domain = "slack.com", token: string): strin
 proc didInitSucceed(response: JsonNode): bool = 
   return response["ok"].getBVal()
   
-proc initSlackServer*(token: string, connect: bool, proxy: Proxy): SlackServer =
+#proc initSlackServer*(token: string, connect: bool, proxy: Proxy): SlackServer =
 
