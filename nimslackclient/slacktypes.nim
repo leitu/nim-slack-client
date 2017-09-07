@@ -24,6 +24,7 @@ type
     id: int
     name: string
     real_name: string
+    email: string
     server: SlackServer
     timezone: TimeZone
 
@@ -39,4 +40,10 @@ type
     defaultUserAgent*: Table[string, string]
     customUserAgent*: seq[string]
     proxy*: Proxy
+
+type Config* = object
+  WS_PORT*: string
+  BOT_NAME*: string
+  BOT_EMAIL*: string
+  BOT_TZ*: string #Must be a valid tz, ie "Australia/Sydney" https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 

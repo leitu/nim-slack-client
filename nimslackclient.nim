@@ -9,5 +9,5 @@
 include nimslackclient/server
 
 let server = rtmConnect(reconnect = false, timeout = 120)
-echo server.loginData
+parseUsers(server, server.loginData["users"])
 loop(server)
