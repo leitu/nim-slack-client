@@ -6,7 +6,7 @@ description = "Basic socket stuff with nim"
 license = "MIT"
 
 requires "nim >= 0.17.0"
-requires "https://github.com/Tangdongle/websocket.nim"
+requires "https://github.com/Tangdongle/websocket.nim#head"
 
 task co, "Compile":
   exec "nim c -d:ssl nimslackclient.nim"

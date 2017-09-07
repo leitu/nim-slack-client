@@ -78,21 +78,20 @@ proc rtmConnect*(reconnect: bool = false, timeout: int): SlackServer =
   let ws = waitFor newAsyncWebSocket(serverUrl, sslVerifyMode = CVerifyNone)
   echo "Connected to !" & $serverUrl
 
-  #let server = initSlackServer(
-  #  token: token,
-  #  username: user.name,
-  #  domain: SLACKDOMAIN,
-  #  websocket: ws,
-  #  loginData: loginData,
-  #  connected: true,
-  #  wsUrl: serverUrl
-  #)
-
-  return 
 
 
+  result = initSlackServer(
+    token = token,
+    username = user.name,
+    domain = SLACKDOMAIN,
+    websocket = ws,
+    loginData = loginData,
+    connected = true,
+    wsUrl = serverUrl
+  )
 
-proc listen*(self: SlackServer) {.discardable.} = 
+proc loop*(self: SlackServer) {.discardable.} = 
+  ## The main event loop. Reads data from slack's RTM
   
   let ws = self.websocket
 
