@@ -6,7 +6,9 @@ import asyncnet, asyncdispatch, uri, strutils, lists
 include 
   slacktypes,
   slackrequest,
-  slackuser
+  slackuser,
+  slackchannel,
+  config
 
 
 proc initSlackServer*(
@@ -17,13 +19,14 @@ proc initSlackServer*(
     loginData: JsonNode,
     connected: bool,
     wsUrl: Uri,
+    config: Config,
     users: SinglyLinkedList[SlackUser] = initSinglyLinkedList[SlackUser](),
     channels: SinglyLinkedList[SlackChannel] = initSinglyLinkedList[SlackChannel]()
   ): SlackServer = 
   ## initialises a slack server
 
   result = SlackServer(token: token, username: username, domain: domain, websocket: websocket,
-    loginData: loginData, users: users, channels: channels, wsUrl: wsUrl)
+    loginData: loginData, wsUrl: wsUrl, config: config, users: users, channels: channels)
 
 proc initRTM(request: SlackRequest, domain = "slack.com", token: string): string = 
   ## Make an initial connection to slack and return a success string or failure string
@@ -47,34 +50,46 @@ proc didInitSucceed(response: JsonNode): bool =
   ##Checks to see if the initial login request succeeded
   return response["ok"].getBVal()
 
-proc buildSlackUri(wsUri: Uri): Uri =
-  let WS_PORT = 443
-  result = parseUri(format("$#://$#:$#$#$#", wsUri.scheme, wsUri.hostname, $WS_PORT, wsUri.path, wsUri.query))
+proc buildSlackUri(wsUri: Uri, config: Config): Uri =
+  result = parseUri(format("$#://$#:$#$#$#", wsUri.scheme, wsUri.hostname, config.WsPort, wsUri.path, wsUri.query))
 
 proc initBotUser(self: SlackServer, selfData: JsonNode) {.discardable.} = 
   var user = initSlackUser(
-    user_id = int(selfData["id"].getNum),
+    user_id = selfData["id"].str,
     name = selfData["name"].str,
-    real_name = "BOT",
-    email = "ryanc@signiq.com",
-    timezone = "Australia/Perth",
+    real_name = self.config.BotName,
+    email = self.config.BotEmail,
+    timezone = self.config.BotTimeZone,
     server = self
     )
   self.users.prepend(newSinglyLinkedNode[SlackUser](user))
 
 proc rtmConnect*(reconnect: bool = false, timeout: int): SlackServer =
   ## Connect or reconnect to the RTM
+  ## We have to make an initial request to the HTTP API, which gives us a Websocket URL
+  ## and other contextual data
+  ##
+  ## We use rtm.start instead of connect to build user lists
+  ## TODO: Replace .start with .connect and use api calls to build users etc
 
-  if existsEnv("SLACK_BOT_TOKEN") == false:
-    echo "No SLACK_BOT_TOKEN environment variable"
-    quit(1)
+  echo slackConfigFilePath()
+  let config = loadConfig()
 
-  var token = string(getEnv("SLACK_BOT_TOKEN"))
+  var token = ""
+  if isNilOrEmpty(config.BotToken) or isNilOrWhiteSpace(config.BotToken):
+    token = string(getEnv("SLACK_BOT_TOKEN"))
+    echo token
+    if isNilOrEmpty(token) or isNilOrWhiteSpace(token):
+      echo "No Bot Token set in config and no SLACK_BOT_TOKEN environment variable"
+      quit(1)
+  else:
+    token = config.BotToken
 
   var request = initSlackRequest(nil, "")
   var rtm = initRTM(request, token = $token)
   var loginData = parseJson(rtm)
   let domain = loginData["team"]["domain"].str
+  let username = loginData["self"]["name"].str
 
   if not didInitSucceed(loginData):
     # Our init was good!
@@ -82,8 +97,7 @@ proc rtmConnect*(reconnect: bool = false, timeout: int): SlackServer =
     quit(0)
 
   var wsUri = parseUri(loginData["url"].str)
-  let serverUrl = buildSlackUri(wsUri)
-  echo serverUrl
+  let serverUrl = buildSlackUri(wsUri, config)
 
   let ws = waitFor newAsyncWebSocket(serverUrl, sslVerifyMode = CVerifyNone)
   echo "Connected to " & $serverUrl
@@ -91,18 +105,37 @@ proc rtmConnect*(reconnect: bool = false, timeout: int): SlackServer =
 
   result = initSlackServer(
     token = token,
-    username = "SodaBot",
+    username = username,
     domain = domain,
     websocket = ws,
     loginData = loginData,
     connected = true,
-    wsUrl = serverUrl
+    wsUrl = serverUrl,
+    config = config
   )
 
   initBotUser(result, loginData["self"])
 
+proc parseChannels(self: SlackServer, channels: JsonNode) {.discardable.} = 
+  ## Parses users from a JsonNode of users from a slack login and adds them to the server's list
+  var channelList = self.channels
 
-proc parseUsers*(self: SlackServer, users: JsonNode) {.discardable.} = 
+  for channel in channels:
+    #TODO: Some channels are bots or apps, so we need to handle those differently in the future
+    try:
+      if channel["is_channel"].getBVal == false:
+        continue
+      var newChannel = initSlackChannel(
+        channel_id = channel["id"].str,
+        name = channel["name"].str,
+        server = self
+        )
+      channelList.prepend(newSinglyLinkedNode[Slackchannel](newChannel))
+    except KeyError:
+      echo "Invalid channel data for channel $#" % channel["name"].str
+      continue
+
+proc parseUsers(self: SlackServer, users: JsonNode) {.discardable.} = 
   ## Parses users from a JsonNode of users from a slack login and adds them to the server's list
   var userList = self.users
 
@@ -110,7 +143,7 @@ proc parseUsers*(self: SlackServer, users: JsonNode) {.discardable.} =
     #TODO: Some users are bots or apps, so we need to handle those differently in the future
     try:
       var newUser = initSlackUser(
-        user_id = int(user["id"].getNum),
+        user_id = user["id"].str,
         name = user["name"].str,
         real_name = user["real_name"].str,
         email = user["profile"]["email"].str,
@@ -121,6 +154,10 @@ proc parseUsers*(self: SlackServer, users: JsonNode) {.discardable.} =
     except KeyError:
       echo "Invalid user data for user $#" % user["name"].str
       continue
+
+proc parseLoginData*(self: SlackServer, loginData: JsonNode) {.discardable.} =
+  parseUsers(self, loginData["users"])
+  parseChannels(self, loginData["channels"])
 
 proc loop*(self: SlackServer) {.discardable.} = 
   ## The main event loop. Reads data from slack's RTM
