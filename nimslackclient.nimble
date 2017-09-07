@@ -1,8 +1,8 @@
 # Package
 
-version = "0.1.0"
+version = "0.1.1"
 author = "TangDongle"
-description = "Basic socket stuff with nim"
+description = "Slack Client API for nim"
 license = "MIT"
 
 requires "nim >= 0.17.0"
