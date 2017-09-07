@@ -14,3 +14,6 @@ task co, "Compile":
 task run, "Run":
   exec "mkdir -p bin"
   exec "nim c -r -d:ssl --out:bin/nimslackclient nimslackclient.nim"
+
+task watch, "Watch":
+  exec "while inotifywait -r -e close_write .; do nimble run; done"  

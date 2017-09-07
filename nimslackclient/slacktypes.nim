@@ -1,3 +1,4 @@
+import uri
 import json, tables
 import httpclient
 from lists import SinglyLinkedList
@@ -17,7 +18,7 @@ type
     users: SinglyLinkedList[SlackUser]
     channels: SinglyLinkedList[SlackChannel]
     connected: bool
-    wsUrl: string
+    wsUrl: Uri
 
   SlackUser* = ref object of RootObj
     id: int

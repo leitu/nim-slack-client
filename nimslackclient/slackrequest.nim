@@ -1,5 +1,5 @@
 import slacktypes
-import json, tables, strutils, httpclient, os, asyncdispatch
+import strutils, httpclient, os, asyncdispatch, tables, json
 
 proc initSlackRequest*(proxy: Proxy, customAgent: string): SlackRequest = 
   ## Create and return a default slack request
@@ -45,6 +45,7 @@ proc sendRequest*(self: SlackRequest, token: string, request = "?", data: JsonNo
       "user-agent": getUserAgent(self),
       "Content-Type": "application/json; charset=utf-8"
     })
+
   var postBody = %*
     {
       "token": token,
