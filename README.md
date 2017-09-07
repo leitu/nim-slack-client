@@ -1,9 +1,4 @@
-# nim slack client
-Nim Socket Stuff for a bot
+# Nim Slack Client
 
-## Doc sources
-https://api.slack.com/rtm
-https://api.slack.com/web#authentication
-
-## Going Forward
-Essentially, I'm trying to implement https://github.com/slackapi/python-slackclient in nim
+## Introduction
+This is a library for slack that uses slacks Real Time Machine (https://api.slack.com/rtm). Built using slack's python client as a template(https://github.com/slackapi/python-slackclient)
