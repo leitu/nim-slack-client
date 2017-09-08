@@ -99,7 +99,7 @@ proc rtmConnect*(reconnect: bool = false, timeout: int): SlackServer =
   var wsUri = parseUri(loginData["url"].str)
   let serverUrl = buildSlackUri(wsUri, config)
 
-  let ws = waitFor newAsyncWebSocket(serverUrl, sslVerifyMode = CVerifyNone)
+  let ws = waitFor newAsyncWebSocket(serverUrl, verifySsl = false)
   echo "Connected to " & $serverUrl
 
 
