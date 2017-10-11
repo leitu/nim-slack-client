@@ -6,8 +6,43 @@
 #read: (opcode: Text, data: {"type":"desktop_notification","title":"SignIQ","subtitle":"bottystuff","msg":"1504772511.000007","content":"ryanc: @sodabot WOW","channel":"G64HV5E0Y","launchUri":"slack:\/\/channel?id=G64HV5E0Y&message=1504772511000007&team=T03DRH8QZ","avatarImage":"https:\/\/avatars.slack-edge.com\/2017-08-02\/221029099876_496046da12c5ab7c9d86_192.jpg","ssbFilename":"knock_brush.mp3","imageUri":null,"is_shared":false,"event_ts":"1504772511.000132"})
 ##
 
+import asyncnet, websocket
 include nimslackclient/server
 
-let server = rtmConnect(reconnect = false, timeout = 120)
-parseUsers(server, server.loginData["users"])
-loop(server)
+proc handleMessageEvent(e: EventArgs) = 
+  echo "EVENTS"
+
+proc own_reader(ws: AsyncWebSocket, server: SlackServer): Future[SlackMessage] {.async.} =
+
+  let data = await ws.sock.readData(true)
+  #echo "Data" & $data
+  var jsonData = parseJson("""{"type": "failed"}""")
+  try:
+    jsonData = parseJson(data.data)
+  except JsonParsingError:
+    jsonData = parseJson("""{"type": "failed"}""")
+  
+  return newSlackMessage(server, jsonData)
+
+proc own_serve(self: SlackServer) {.async.} = 
+  ## The main event loop. Reads data from slack's RTM
+  ## Individual implementations should define their own loop
+  
+  let ws = self.websocket
+
+  while true:
+    var resp = own_reader(ws, self)
+    if finished(resp):
+      var msg = await resp
+      echo "Message: " & msg.Text
+    if resp.failed:
+      echo "Failed :("
+    await sleepAsync(10)
+
+var server = rtmConnect(reconnect = false)
+asyncCheck own_serve(server)
+asyncCheck ping(server.websocket)
+runForever()
+
+
+echo "AFTER LOOP"
