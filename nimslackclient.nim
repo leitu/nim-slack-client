@@ -14,6 +14,8 @@ proc handleMessageEvent(e: EventArgs) =
 
 proc own_reader(ws: AsyncWebSocket, server: SlackServer): Future[SlackMessage] {.async.} =
 
+  new(result)
+
   let data = await ws.sock.readData(true)
   #echo "Data" & $data
   var jsonData = parseJson("""{"type": "failed"}""")
@@ -21,8 +23,8 @@ proc own_reader(ws: AsyncWebSocket, server: SlackServer): Future[SlackMessage] {
     jsonData = parseJson(data.data)
   except JsonParsingError:
     jsonData = parseJson("""{"type": "failed"}""")
-  
-  return newSlackMessage(server, jsonData)
+
+  result = buildSlackMessage(server, jsonData)
 
 proc own_serve(self: SlackServer) {.async.} = 
   ## The main event loop. Reads data from slack's RTM
@@ -31,13 +33,19 @@ proc own_serve(self: SlackServer) {.async.} =
   let ws = self.websocket
 
   while true:
-    var resp = own_reader(ws, self)
-    if finished(resp):
-      var msg = await resp
-      echo "Message: " & msg.Text
-    if resp.failed:
-      echo "Failed :("
-    await sleepAsync(10)
+    var resp = await own_reader(ws, self)
+    try:
+      if isNil(resp.Type) == false:
+        echo "Type " & $resp.Type
+        if $resp.Type == "message":
+          if isNil(resp.Text) == false:
+            echo "Message " & $resp.Text
+          if isNil(resp.User) == false:
+            echo "User " & $resp.User.name
+          if isNil(resp.Channel) == false:
+            echo "Channel" & $resp.Channel.name
+    except:
+      echo "No message"
 
 var server = rtmConnect(reconnect = false)
 asyncCheck own_serve(server)

@@ -10,7 +10,8 @@ type
     zone: string
 
 type
-  SlackServer* = object of RootObj
+  SlackServer* = ref SlackServerObj
+  SlackServerObj = object of RootObj
     token: string
     username: string
     domain: string
@@ -22,7 +23,8 @@ type
     wsUrl: Uri
     config: Config
 
-  SlackUser* = ref object of RootObj
+  SlackUser* = ref SlackUserObj
+  SlackUserObj = object of RootObj
     id: string
     name: string
     real_name: string
@@ -30,7 +32,8 @@ type
     server: SlackServer
     timezone: TimeZone
 
-  SlackChannel* = ref object of RootObj 
+  SlackChannel* = ref SlackChannelObj
+  SlackChannelObj = object of RootObj 
     id: string 
     name: string
     server: SlackServer
@@ -43,7 +46,8 @@ type
     BotTimeZone*: string #Must be a valid tz, ie "Australia/Sydney" https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     BotToken*: string
 
-  SlackMessage* = object of RootObj
+  SlackMessage* = ref SlackMessageObj
+  SlackMessageObj = object of RootObj
     Type*: string
     Channel*: SlackChannel
     User*: SlackUser

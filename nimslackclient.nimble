@@ -21,3 +21,7 @@ task release, "Release":
 
 task watch, "Watch":
   exec "while inotifywait -r -e close_write .; do nimble run; done"  
+
+task debug, "Debug":
+  exec "mkdir -p bin"
+  exec "nim c --debugger:native -d:ssl --out:bin/nimslackclient nimslackclient.nim"

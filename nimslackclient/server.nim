@@ -8,7 +8,8 @@ include
   slackrequest,
   slackuser,
   slackchannel,
-  config
+  config,
+  nre
 
 
 proc initSlackServer*(
@@ -20,13 +21,19 @@ proc initSlackServer*(
     connected: bool,
     wsUrl: Uri,
     config: Config,
-    users: SinglyLinkedList[SlackUser] = initSinglyLinkedList[SlackUser](),
-    channels: SinglyLinkedList[SlackChannel] = initSinglyLinkedList[SlackChannel](),
   ): SlackServer = 
   ## initialises a slack server
 
-  result = SlackServer(token: token, username: username, domain: domain, websocket: websocket,
-    loginData: loginData, wsUrl: wsUrl, config: config, users: users, channels: channels)
+  new result
+  result.token = token
+  result.username = username
+  result.domain = domain
+  result.websocket = websocket
+  result.loginData = loginData
+  result.wsUrl = wsUrl
+  result.config = config
+  result.users = initSinglyLinkedList[SlackUser]()
+  result.channels = initSinglyLinkedList[SlackChannel]()
 
 proc initRTM(request: SlackRequest, domain = "slack.com", token: string): string = 
   ## Make an initial connection to slack and return a success string or failure string
@@ -55,14 +62,7 @@ proc buildSlackUri(wsUri: Uri, config: Config): Uri =
   result = parseUri(format("$#://$#:$#$#$#", wsUri.scheme, wsUri.hostname, config.WsPort, wsUri.path, wsUri.query))
 
 proc initBotUser(self: var SlackServer, selfData: JsonNode) {.discardable.} = 
-  var user = initSlackUser(
-    user_id = selfData["id"].str,
-    name = selfData["name"].str,
-    real_name = self.config.BotName,
-    email = self.config.BotEmail,
-    timezone = self.config.BotTimeZone,
-    server = self
-    )
+  var user = SlackUser(id: selfData["id"].str, name: selfData["name"].str, real_name: self.config.BotName, email: self.config.BotEmail, timezone: Timezone(zone: self.config.BotTimeZone), server: self)
   self.users.prepend(user)
 
 proc parseChannels(self: var SlackServer, channels: JsonNode) {.discardable.} = 
@@ -74,10 +74,11 @@ proc parseChannels(self: var SlackServer, channels: JsonNode) {.discardable.} =
     try:
       if channel["is_channel"].getBVal == false:
         continue
-      var newChannel = initSlackChannel(
-        channel_id = channel["id"].str,
-        name = channel["name"].str,
-        server = self
+
+      var newChannel = SlackChannel(
+        id: channel["id"].str,
+        name: channel["name"].str,
+        server: self
         )
       channelList.prepend(newSinglyLinkedNode[Slackchannel](newChannel))
       echo "Added new channel $#" % $newChannel
@@ -89,18 +90,23 @@ proc parseUsers(self: var SlackServer, users: JsonNode) {.discardable.} =
   ## Parses users from a JsonNode of users from a slack login and adds them to the server's list
   var userList = self.users
 
+  var counter = 1
   for user in users:
     #TODO: Some users are bots or apps, so we need to handle those differently in the future
     try:
-      var newUser = initSlackUser(
-        user_id = user["id"].str,
-        name = user["name"].str,
-        real_name = user["real_name"].str,
-        email = user["profile"]["email"].str,
-        timezone = user["tz"].str,
-        server = self
+      echo $user["id"] & " : " & $user["name"]
+      var newUser = SlackUser(
+        id: user["id"].str,
+        name: user["name"].str,
+        real_name: user["real_name"].str,
+        email: user["profile"]["email"].str,
+        timezone: Timezone(zone: user["tz"].str),
+        server: self
         )
-      userList.prepend(newSinglyLinkedNode[SlackUser](newUser))
+      echo "Added User " & user["name"].str
+      echo "User Num $# added" % [$counter]
+      counter += 1
+      userList.prepend(newUser)
     except KeyError:
       echo "Invalid user data for user $#" % user["name"].str
       continue
@@ -136,6 +142,9 @@ proc rtmConnect*(self: var SlackServer, reconnect: bool = false): SlackServer {.
   let serverUrl = buildSlackUri(wsUri, config)
 
   let ws = waitFor newAsyncWebSocket(serverUrl, verifySsl = false)
+
+  new(result)
+
   if reconnect == true:
     echo "Reconnected to " & $serverUrl
 
@@ -193,6 +202,9 @@ proc rtmConnect*(reconnect: bool = false): SlackServer {.discardable.} =
   let serverUrl = buildSlackUri(wsUri, config)
 
   let ws = waitFor newAsyncWebSocket(serverUrl, verifySsl = false)
+
+  new(result)
+
   if reconnect == true:
     echo "Reconnected to " & $serverUrl
     result = initSlackServer(
@@ -250,45 +262,62 @@ proc sendRTMMessage*(self: var SlackServer, channel: SlackChannel, message: stri
   #Send the message to be sent via the websocket
   self.sendToWebSocket(messageJson)
 
-proc newSlackMessage*(self: SlackServer, data: JsonNode): SlackMessage = 
-  #echo "JSON :" & $data
-  if contains(data, "type"):
-    result.Type = data["type"].str
-  else:
-    result.Type = ""
-  
-  #if contains(data, "channel"):
-  #  for channel in self.channels.items:
-  #    if channel.id == data["channel"].str:
-  #      result.Channel = channel
-  #      echo "Contains channel" & $result.Channel
-  #      break
-  #else:
-  result.Channel = nil
+proc `Type=`*(self: var SlackMessage, data: string) {.inline.} = 
+  self.Type = data
 
-  #if contains(data, "user"):
-  #  for user in self.users.items:
-  #    if user.id == data["user"].str:
-  #      result.User = user
-  #      break
-  #else:
-  result.User = nil
+proc `Channel=`*(self: var SlackMessage, data: SlackChannel) {.inline.} =
+  self.Channel = data
 
-  try:
-    if contains(data, "text"):
-      result.Text = data["text"].str
-  except JsonParsingError:
-      result.Text = "Empty"
+proc `Channel=`*(self: var SlackMessage, data: SlackUser) {.inline.} =
+  self.User = data
 
+proc `Text=`*(self: var SlackMessage, data: string) {.inline.} =
+  self.Text = data
 
-  #if contains(data, "ts"):
-  #  result.TimeStamp = data["ts"].str
-  #else:
-  #  result.TimeStamp = "0"
+proc `TimeStamp=`*(self: var SlackMessage, data: string) {.inline.} =
+  self.TimeStamp = data
 
-proc newSlackMessage*(self: SlackServer, data: string): SlackMessage = 
-  let js = parseJson(data)
-  result = newSlackMessage(self, js)
+proc buildSlackMessage*(self: SlackServer, data: JsonNode): SlackMessage = 
+  let MESSAGETEXT = re"^<@\w*?> (.*)"
+
+  new(result)
+
+  var isMessage = false
+  var acceptedType = "message"
+
+  result.Type = data["type"].str
+  if data["type"].str == "message":
+    isMessage = true
+    echo "Is message type!"
+
+  if isMessage:
+    echo "MESSAGE!"
+
+  if data.hasKey("text"):
+    if data["text"].str.contains(MESSAGETEXT):
+      result.Text = data["text"].str.match(MESSAGETEXT).get.captures[0]
+
+  if data.hasKey("ts"):
+    result.TimeStamp = data["ts"].str
+    
+  var hasMatch = false
+  if data.hasKey("user"):
+    if isMessage:
+      echo "User data " & data["user"].str
+    for u in items(self.users):
+      if isMessage:
+        echo "User iter " & u.id
+      if u.id == data["user"].str:
+        hasMatch = true
+        result.User = u
+        echo "Breaking, found user " & result.User.name
+        break
+
+  if data.hasKey("channel"):
+    for c in self.channels.items():
+      if c.id == data["channel"].str:
+        result.Channel = c
+        break
   
 ### Callbacks
 
