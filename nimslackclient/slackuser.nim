@@ -11,7 +11,7 @@ proc initSlackUser*(user_id:string, name:string = "" , real_name:string = "", em
   result.timezone = timezone
   result.server = server
 
-#proc initSlackUser*(user_id: string, name: string, real_name: string = "", email: string = "", timezone: string = "UTC", server: SlackServer): SlackUser = 
-#  ## handles tz as string
-#  let tz = TimeZone(zone: timezone)
-#  result = initSlackUser(user_id = user_id, name = name, real_name = real_name, email = email, timezone = tz, server = server)
+proc initSlackUser*(user_id: string, name: string = "", real_name: string = "", email: string = "", timezone: string = "UTC", server: SlackServer): SlackUser = 
+  ## handles tz as string
+  let tz = TimeZone(zone: timezone)
+  result = initSlackUser(user_id=user_id, name=name, real_name=real_name, email=email, timezone=tz, server=server)

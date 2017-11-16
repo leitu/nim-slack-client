@@ -7,39 +7,39 @@ from events import EventEmitter, EventArgs
 
 type
   TimeZone* = ref object of RootObj
-    zone: string
+    zone*: string
 
 type
   SlackServer* = ref SlackServerObj
   SlackServerObj = object of RootObj
-    token: string
-    username: string
-    domain: string
-    websocket: AsyncWebSocket
-    loginData: JsonNode
-    users: SinglyLinkedList[SlackUser]
-    channels: SinglyLinkedList[SlackChannel]
-    connected: bool
-    wsUrl: Uri
-    config: Config
-    proxies: seq[Proxy]
-    apiRequester: SlackRequest
+    token*: string
+    username*: string
+    domain*: string
+    websocket*: AsyncWebSocket
+    loginData*: JsonNode
+    users*: SinglyLinkedList[SlackUser]
+    channels*: SinglyLinkedList[SlackChannel]
+    connected*: bool
+    wsUrl*: Uri
+    config*: Config
+    proxies*: seq[Proxy]
+    apiRequester*: SlackRequest
 
   SlackUser* = ref SlackUserObj
   SlackUserObj = object of RootObj
-    id: string
-    name: string
-    real_name: string
-    email: string
-    server: SlackServer
-    timezone: TimeZone
+    id*: string
+    name*: string
+    real_name*: string
+    email*: string
+    server*: SlackServer
+    timezone*: TimeZone
 
   SlackChannel* = ref SlackChannelObj
   SlackChannelObj = object of RootObj 
-    id: string 
-    name: string
-    server: SlackServer
-    channel_members: seq[SlackUser]
+    id*: string 
+    name*: string
+    server*: SlackServer
+    channel_members*: seq[SlackUser]
 
   Config* = object
     WsPort*: string
@@ -55,6 +55,7 @@ type
     User*: SlackUser
     Text*: string
     TimeStamp*: string
+    Response*: Response
 
   SlackClientObj = object of RootObj
     Server*: SlackServer

@@ -49,7 +49,7 @@ proc own_serve(self: SlackServer) {.async.} =
     except:
       echo "No message"
 
-var server = rtmConnect(reconnect = false)
+var server = rtmConnect(reconnect=false, use_rtm_start=true)
 asyncCheck own_serve(server)
 asyncCheck ping(server.websocket)
 runForever()

@@ -1,5 +1,6 @@
-import slacktypes
 import strutils, httpclient, os, asyncdispatch, tables, json
+from slacktypes import SlackRequest, SlackMessage, SlackServer
+from slackmessage import buildSlackMessage
 
 proc initSlackRequest*(proxies: seq[Proxy], customAgent: string = ""): SlackRequest = 
   ## Create and return a default slack request
@@ -32,11 +33,11 @@ proc getUserAgent*(self: SlackRequest): string =
 
   result = join(uaString, " ")
 
-proc appendUserAgent(self: SlackRequest, name: string, version: string): int {.discardable.} = 
+proc appendUserAgent*(self: SlackRequest, name: string, version: string): int {.discardable.} = 
   if len(self.customUserAgent) > 0:
     self.customUserAgent.add(replace(name, "/", ":") & " " & replace(version, "/", ":"))
 
-proc sendRequest*(self: SlackRequest, token: string, request = "?", data: JsonNode, domain = "slack.com", timeout: int): Response {.discardable.} =
+proc sendRequest*(self: SlackRequest, server: SlackServer, token: string, request = "?", data: JsonNode, domain = "slack.com", timeout: int): SlackMessage {.discardable.} =
   ## Send a request to the slack api
   ## We add all elements from our json data node passed in and 
   ## send it up with a token
@@ -56,4 +57,6 @@ proc sendRequest*(self: SlackRequest, token: string, request = "?", data: JsonNo
   for key, value in data.pairs:
     postBody[key] = value
 
-  result = client.request(url, httpMethod = HttpPost, body = $postBody)
+  var clientResponse = client.request(url, httpMethod = HttpPost, body = $postBody)
+  result = buildSlackMessage(server=server, data=data, response=clientResponse)
+  
