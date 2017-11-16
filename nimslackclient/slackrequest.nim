@@ -1,8 +1,9 @@
 import slacktypes
 import strutils, httpclient, os, asyncdispatch, tables, json
 
-proc initSlackRequest*(proxy: Proxy, customAgent: string): SlackRequest = 
+proc initSlackRequest*(proxies: seq[Proxy], customAgent: string = ""): SlackRequest = 
   ## Create and return a default slack request
+  new result
 
   var customAgentSeq = newSeq[string](0)
   var defaultsUA = initTable[string, string]()
@@ -10,13 +11,14 @@ proc initSlackRequest*(proxy: Proxy, customAgent: string): SlackRequest =
   defaultsUA["nim"] = "Nim/0.17.0"
   defaultsUA["system"] = hostOS & "/"
 
-  if len(customAgent) > 0:
+  if customAgent != "":
     customAgentSeq.add(customAgent)
 
-  result = SlackRequest(proxy: proxy, defaultUserAgent: defaultsUA, customUserAgent: customAgentSeq)
+  result.defaultUserAgent = defaultsUA
+  result.customUserAgent = customAgentSeq
+  result.proxies = proxies
 
 proc getUserAgent*(self: SlackRequest): string = 
-
   if len(self.customUserAgent) > 0:
     var customUaList = newSeq[string](0)
     for uaString in self.customUserAgent:

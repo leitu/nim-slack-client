@@ -16,13 +16,15 @@ proc own_reader(ws: AsyncWebSocket, server: SlackServer): Future[SlackMessage] {
 
   new(result)
 
-  let data = await ws.sock.readData(true)
-  #echo "Data" & $data
-  var jsonData = parseJson("""{"type": "failed"}""")
-  try:
-    jsonData = parseJson(data.data)
-  except JsonParsingError:
-    jsonData = parseJson("""{"type": "failed"}""")
+  var jsonData = parseJson("""{"type": "NoMessage"}""")
+
+  while jsonData["type"].getStr == "NoMessage":
+    let data = await ws.sock.readData(true)
+    #echo "Data" & $data
+    try:
+      jsonData = parseJson(data.data)
+    except JsonParsingError:
+      jsonData = parseJson("""{"type": "NoMessage"}""")
 
   result = buildSlackMessage(server, jsonData)
 

@@ -22,6 +22,8 @@ type
     connected: bool
     wsUrl: Uri
     config: Config
+    proxies: seq[Proxy]
+    apiRequester: SlackRequest
 
   SlackUser* = ref SlackUserObj
   SlackUserObj = object of RootObj
@@ -54,11 +56,16 @@ type
     Text*: string
     TimeStamp*: string
 
-type
+  SlackClientObj = object of RootObj
+    Server*: SlackServer
+    Token*: string
+
+  SlackClient* = ref SlackClientObj
+
   SlackRequest* = ref object of RootObj
     defaultUserAgent*: Table[string, string]
     customUserAgent*: seq[string]
-    proxy*: Proxy
+    proxies*: seq[Proxy]
 
 proc `$`*(C: SlackChannel): string = 
   return C.name

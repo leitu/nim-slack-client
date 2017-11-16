@@ -5,7 +5,7 @@ author = "TangDongle"
 description = "Slack Client API for nim"
 license = "MIT"
 
-requires "nim >= 0.17.0"
+requires "nim >= 0.17.3"
 requires "https://github.com/Tangdongle/websocket.nim#head"
 
 task co, "Compile":
