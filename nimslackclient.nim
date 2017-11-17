@@ -13,9 +13,6 @@ proc handleMessageEvent(e: EventArgs) =
   echo "EVENTS"
 
 proc own_reader(ws: AsyncWebSocket, server: SlackServer): Future[SlackMessage] {.async.} =
-
-  new(result)
-
   var jsonData = parseJson("""{"type": "NoMessage"}""")
 
   while jsonData["type"].getStr == "NoMessage":
@@ -37,15 +34,15 @@ proc own_serve(self: SlackServer) {.async.} =
   while true:
     var resp = await own_reader(ws, self)
     try:
-      if isNil(resp.Type) == false:
-        echo "Type " & $resp.Type
-        if $resp.Type == "message":
-          if isNil(resp.Text) == false:
-            echo "Message " & $resp.Text
-          if isNil(resp.User) == false:
-            echo "User " & $resp.User.name
-          if isNil(resp.Channel) == false:
-            echo "Channel" & $resp.Channel.name
+      if isNil(resp.msgtype) == false:
+        echo "Type " & $resp.msgtype
+        if $resp.msgtype == "message":
+          if isNil(resp.text) == false:
+            echo "Message " & $resp.text
+          if isNil(resp.user) == false:
+            echo "User " & $resp.user.name
+          if isNil(resp.channel) == false:
+            echo "Channel" & $resp.channel.name
     except:
       echo "No message"
 

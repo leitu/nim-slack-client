@@ -50,16 +50,17 @@ type
 
   SlackMessage* = ref SlackMessageObj
   SlackMessageObj = object of RootObj
-    Type*: string
-    Channel*: SlackChannel
-    User*: SlackUser
-    Text*: string
-    TimeStamp*: string
-    Response*: Response
+    msgtype*: string
+    channel*: SlackChannel
+    user*: SlackUser
+    text*: string
+    timeStamp*: string
+    ok*: bool
+    response*: Response
 
   SlackClientObj = object of RootObj
-    Server*: SlackServer
-    Token*: string
+    server*: SlackServer
+    token*: string
 
   SlackClient* = ref SlackClientObj
 
@@ -75,4 +76,4 @@ proc `$`*(C: SlackUser): string =
   return C.name
 
 proc `$`*(C: SlackMessage): string = 
-  return "Type: " & C.Type & ", Channel: " & $C.Channel & ", User: " & $C.User & ", TimeStamp: " & C.TimeStamp
+  return "Type: " & C.msgtype & ", Channel: " & $C.channel & ", User: " & $C.user & ", TimeStamp: " & C.timeStamp

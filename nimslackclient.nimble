@@ -25,3 +25,9 @@ task watch, "Watch":
 task debug, "Debug":
   exec "mkdir -p bin"
   exec "nim c --debugger:native -d:ssl --out:bin/nimslackclient nimslackclient.nim"
+
+task ch, "Check Syntax":
+  exec "nim check nimslackclient.nim"
+  for fn in listFiles("nimslackclient"):
+    echo fn
+    exec "nim check " & fn

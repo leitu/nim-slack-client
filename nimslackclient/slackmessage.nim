@@ -3,63 +3,45 @@ import json
 import lists
 from slacktypes import SlackChannel, SlackServer, SlackUser, SlackMessage
 from httpclient import Response
-
-proc `Type=`*(self: var SlackMessage, data: string) {.inline.} = 
-  self.Type = data
-
-proc `Channel=`*(self: var SlackMessage, data: SlackChannel) {.inline.} =
-  self.Channel = data
-
-proc `Channel=`*(self: var SlackMessage, data: SlackUser) {.inline.} =
-  self.User = data
-
-proc `Text=`*(self: var SlackMessage, data: string) {.inline.} =
-  self.Text = data
-
-proc `TimeStamp=`*(self: var SlackMessage, data: string) {.inline.} =
-  self.TimeStamp = data
+from slackchannel import findChannelById
+from slackmessage import findUserById
 
 proc buildSlackMessage*(server: SlackServer, data: JsonNode, response: Response = Response()): SlackMessage = 
+  new result
   let MESSAGETEXT = re"^<@\w*?> (.*)"
-
-  new(result)
 
   var isMessage = false
   var acceptedType = "message"
 
-  result.Type = data["type"].getStr("")
-  if result.Type == acceptedType:
+  #
+  if data.hasKey("ok"):
+    result.ok = data["ok"].getBool()
+  else:
+    #Set to false so we don't process messages without verification
+    result.ok = false
+
+  result.msgtype = data["type"].getStr("")
+  if result.msgtype == acceptedType:
     isMessage = true
     echo "Is message type!"
 
-  if isMessage:
-    echo "MESSAGE!"
-
   if data.hasKey("text"):
     if data["text"].str.contains(MESSAGETEXT):
-      result.Text = data["text"].str.match(MESSAGETEXT).get.captures[0]
+      result.text = data["text"].str.match(MESSAGETEXT).get.captures[0]
 
   if data.hasKey("ts"):
-    result.TimeStamp = data["ts"].str
+    result.timeStamp = data["ts"].str
     
   var hasMatch = false
   if data.hasKey("user"):
-    if isMessage:
-      echo "User data " & data["user"].str
-    for u in items(server.users):
-      if isMessage:
-        echo "User iter " & u.id
-      if u.id == data["user"].str:
-        hasMatch = true
-        result.User = u
-        echo "Breaking, found user " & result.User.name
-        break
+    var user = findUserById(user_id=data["user"].getStr(), server=server)
+    if not isNil(user):
+      result.user = user
 
   if data.hasKey("channel"):
-    for c in server.channels.items():
-      if c.id == data["channel"].str:
-        result.Channel = c
-        break
+    var channel = findChannelById(channel_id=data["channel"].getStr(), server=server)
+    if not isNil(channel):
+      result.channel = channel
 
-  result.Response = response
+  result.response = response
 

@@ -1,9 +1,8 @@
 import typetraits
 import json
-from net import CVerifyNone
 import asyncnet, asyncdispatch, uri, strutils, lists, httpclient
 import events
-from websocket import AsyncWebSocket
+import websocket
 import slackrequest
 from slackmessage import buildSlackMessage
 
@@ -122,12 +121,12 @@ proc parseUsers(self: var SlackServer, users: JsonNode) {.discardable.} =
     counter += 1
     userList.prepend(newUser)
 
-proc attachUser(self: SlackServer, name, user_id, real_name, tz: string): SlackServer = 
+proc attachUser*(self: SlackServer, name, user_id, real_name, tz: string): SlackServer = 
   new result
   result = self
   result.users.prepend(initSlackUser(user_id=user_id, name=name, real_name=real_name, timezone=tz, server=result))
 
-proc attachChannel(self: SlackServer, name, user_id, real_name, tz: string): SlackServer = 
+proc attachChannel*(self: SlackServer, name, user_id, tz: string = "UTC", members: JsonNode = newJObject()): SlackServer = 
   new result
   result = self
 
@@ -167,7 +166,6 @@ proc rtmConnect*(self: var SlackServer, reconnect: bool = false, use_rtm_start:b
 
   let ws = waitFor newAsyncWebSocket(serverUrl, verifySsl = false)
 
-  new(result)
 
   if reconnect == true:
     echo "Reconnected to " & $serverUrl
@@ -208,6 +206,7 @@ proc rtmConnect*(reconnect: bool = false, proxies: seq[Proxy] = @[], payload: Js
   ##
   ## We use rtm.start instead of connect to build user lists
   ## TODO: Replace .start with .connect and use api calls to build users etc
+  new result
 
   let config = loadConfig()
 
@@ -231,7 +230,6 @@ proc rtmConnect*(reconnect: bool = false, proxies: seq[Proxy] = @[], payload: Js
 
   let ws = waitFor newAsyncWebSocket(serverUrl, verifySsl = false)
 
-  new(result)
 
   if reconnect == true:
     echo "Reconnected to " & $serverUrl
@@ -277,10 +275,6 @@ proc sendToWebSocket(self: var SlackServer, messageJson: JsonNode) {.discardable
 proc sendRTMMessage*(self: var SlackServer, channel: SlackChannel, message: string, thread: string = "", reply_broadcast: bool = false): int {.discardable.} =
   ## Sends a message to a given channel
 
-  if isNil(thread) == true:
-    echo "WOW"
-    quit(1)
-
   var msg = """{"type": "message", "channel": "$#", "text": "$#"}""" % [$channel, message]
 
   var messageJson = parseJson(msg)
@@ -296,17 +290,12 @@ proc sendRTMMessage*(self: var SlackServer, channel: SlackChannel, message: stri
 proc apiCall*(self: SlackServer, request: string, timeout: int, payload: JsonNode = newJObject()): SlackMessage = 
   self.apiRequester.sendRequest(token=self.token, server=self, request=request, data=payload, timeout=timeout)
 
-
-##TODO: Move to types
-
-  
 ### Callbacks
 
 proc reader(ws: AsyncWebSocket) {.async.} =
   while true:
     let read = await ws.sock.readData(true)
     echo "read: " & $read
-
 
 proc ping(ws: AsyncWebSocket) {.async.} =
   while true:

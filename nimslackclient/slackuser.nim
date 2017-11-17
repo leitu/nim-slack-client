@@ -15,3 +15,13 @@ proc initSlackUser*(user_id: string, name: string = "", real_name: string = "", 
   ## handles tz as string
   let tz = TimeZone(zone: timezone)
   result = initSlackUser(user_id=user_id, name=name, real_name=real_name, email=email, timezone=tz, server=server)
+
+proc findUserById(user_id: string, server: SlackServer): SlackUser =
+  #[
+  # Return a SlackUser given an ID or nil
+  ]#
+  for channel in server.channels:
+    if channel.id == channel_id:
+      return channel
+  return nil
+
