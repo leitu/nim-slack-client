@@ -4,7 +4,7 @@ import lists
 from slacktypes import SlackChannel, SlackServer, SlackUser, SlackMessage
 from httpclient import Response
 from slackchannel import findChannelById
-from slackmessage import findUserById
+from slackuser import findUserById
 
 proc buildSlackMessage*(server: SlackServer, data: JsonNode, response: Response = Response()): SlackMessage = 
   new result

@@ -1,4 +1,4 @@
-from lists import SinglyLinkedList
+from lists import SinglyLinkedList, items
 from slacktypes import SlackUser, SlackServer, TimeZone
 
 proc initSlackUser*(user_id:string, name:string = "" , real_name:string = "", email: string  = "", timezone: TimeZone = TimeZone(zone: "UTC"), server: SlackServer): SlackUser = 
@@ -16,12 +16,12 @@ proc initSlackUser*(user_id: string, name: string = "", real_name: string = "", 
   let tz = TimeZone(zone: timezone)
   result = initSlackUser(user_id=user_id, name=name, real_name=real_name, email=email, timezone=tz, server=server)
 
-proc findUserById(user_id: string, server: SlackServer): SlackUser =
+proc findUserById*(user_id: string, server: SlackServer): SlackUser =
   #[
   # Return a SlackUser given an ID or nil
   ]#
-  for channel in server.channels:
-    if channel.id == channel_id:
-      return channel
+  for user in server.users:
+    if user.id == user_id:
+      return user
   return nil
 

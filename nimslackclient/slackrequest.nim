@@ -39,7 +39,6 @@ proc appendUserAgent*(self: SlackRequest, name: string, version: string): SlackR
   if len(self.customUserAgent) > 0:
     result.customUserAgent.add(replace(name, "/", ":") & " " & replace(version, "/", ":"))
   
-
 proc sendRequest*(self: SlackRequest, server: SlackServer, token: string, request = "?", data: JsonNode, domain = "slack.com", timeout: int): SlackMessage {.discardable.} =
   ## Send a request to the slack api
   ## We add all elements from our json data node passed in and 
@@ -60,6 +59,6 @@ proc sendRequest*(self: SlackRequest, server: SlackServer, token: string, reques
   for key, value in data.pairs:
     postBody[key] = value
 
-  var clientResponse = client.request(url, httpMethod = HttpPost, body = $postBody)
+  var clientResponse = client.request(url, httpMethod=HttpPost, body = $postBody)
   result = buildSlackMessage(server=server, data=data, response=clientResponse)
   
