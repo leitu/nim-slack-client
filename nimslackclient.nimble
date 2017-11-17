@@ -5,7 +5,7 @@ author = "TangDongle"
 description = "Slack Client API for nim"
 license = "MIT"
 
-requires "nim >= 0.17.0"
+requires "nim >= 0.17.3"
 requires "https://github.com/Tangdongle/websocket.nim#head"
 
 task co, "Compile":
@@ -21,3 +21,13 @@ task release, "Release":
 
 task watch, "Watch":
   exec "while inotifywait -r -e close_write .; do nimble run; done"  
+
+task debug, "Debug":
+  exec "mkdir -p bin"
+  exec "nim c --debugger:native -d:ssl --out:bin/nimslackclient nimslackclient.nim"
+
+task ch, "Check Syntax":
+  exec "nim check nimslackclient.nim"
+  for fn in listFiles("nimslackclient"):
+    echo fn
+    exec "nim check " & fn

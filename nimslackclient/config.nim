@@ -5,6 +5,7 @@ import tables
 import json
 import strutils
 import logging
+from os import getEnv
 
 const config_file_name = "config.json"
 let config_dir = joinPath(getConfigDir(), "nimslackclient")
@@ -54,3 +55,16 @@ proc loadConfig*(): Config =
 
 proc slackConfigFilePath*(): string = 
   return config_file_path
+
+proc getSlackBotToken*(self: Config): string = 
+  ## Returns our slack bot token
+  var token = ""
+  if isNilOrEmpty(self.BotToken):
+    token = string(getEnv("SLACK_BOT_TOKEN"))
+    echo token
+    if isNilOrEmpty(token):
+      echo "No Bot Token set in config and no SLACK_BOT_TOKEN environment variable"
+      quit(1)
+  else:
+    token = self.BotToken
+  return token
