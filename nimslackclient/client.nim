@@ -20,7 +20,11 @@ proc rtmConnect(self: SlackClient, token: string, with_team_state: bool = false,
     echo "Failed to connect"
     raise
 
-proc newSlackClient*(token: string, with_team_state: bool = false, proxies: seq[Proxy] = @[]): SlackClient = 
+proc newSlackClient*(token: string = "", with_team_state: bool = false, proxies: seq[Proxy] = @[]): SlackClient = 
+  ## 
+  ## Args:
+  ##  token: Can be defined in config file
+  ##
   new result
 
   result.token = token
@@ -67,7 +71,7 @@ proc apiCall(self: SlackClient, request: string, timeout: int, payload: JsonNode
     else:
       echo "Message Type: " & result.msgType
 
-proc processChanges(self: var SlackClient, data: JsonNode): ChangeStatus =
+proc processChanges(self: var SlackClient, data: JsonNode): ChangeStatus {.discardable.} =
   ## Internal proc which updates the internal data stores
   ## Returns:
   ##  ChangeStatus.noChange - No change to data
@@ -104,6 +108,11 @@ proc processChanges(self: var SlackClient, data: JsonNode): ChangeStatus =
         return ChangeStatus.noChange
   return ChangeStatus.noChange
 
+proc isValidChannel*(self: SlackClient, channelName: string): bool =
+  return not isNil findChannelByID(
+    channel_id = channelName,
+    server=self.server)
+
 proc rtmRead*(self: SlackClient): Future[seq[JsonNode]] {.async.} =
   ## Reads an RTM message from slack
   ## 
@@ -117,22 +126,23 @@ proc rtmRead*(self: SlackClient): Future[seq[JsonNode]] {.async.} =
   #Check if the server exist
   maybeCase serverExists:
     just server:
-      try:
-        var data = await server.websocketSafeRead()
-        var dataLines: seq[JsonNode] = @[]
-        echo data
+      var data = await server.websocketSafeRead()
+      var dataLines: seq[JsonNode] = @[]
 
-        #Our data can be split into multiple messages
-        for line in splitLines(data):
+      #Our data can be split into multiple messages
+      for line in splitLines(data):
+        try:
           dataLines.add(parseJson(line))
+        except JsonParsingError:
+          #If this fails, we returned a blank string
+          raise newException(RTMReadFailError, "RTM read failed!")
 
-        #For each line, load it into our delta function
-        for item in dataLines:
-          var status: ChangeStatus = client.processChanges(item)
-          echo "Change Status $1" % $status
-      except JsonParsingError:
-        #If this fails, we returned a blank string
-        raise newException(RTMReadFailError, "RTM read failed!")
+      return dataLines
+
+      #For each line, load it into our delta function
+      for item in dataLines:
+        discard client.processChanges(item)
+      #  echo "Change Status $1" % $status
     nothing:
       raise newException(SlackNotConnectedError, "No server to read from!")
 

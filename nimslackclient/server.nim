@@ -87,12 +87,13 @@ proc parseChannels*(self: var SlackServer, channels: JsonNode) {.discardable.} =
       if channel["is_channel"].getBVal() == false:
         continue
 
-      var newChannel = initSlackChannel(
+      let newChannel = initSlackChannel(
         channel_id=channel["id"].str,
         name=channel["name"].getStr(""),
         server=self
         )
       channelList.prepend(newSinglyLinkedNode[Slackchannel](newChannel))
+      self.channels = channelList
     except KeyError:
       echo "Invalid channel data for channel $#" % channel["name"].str
       continue
@@ -143,6 +144,10 @@ proc parseLoginData*(self: var SlackServer, loginData: JsonNode) {.discardable.}
     parseUsers(self, loginData["users"])
   if loginData.hasKey("channels"):
     parseChannels(self, loginData["channels"])
+    var size = 0
+    for ch in self.channels:
+      inc size
+    echo "CHANNELS: " & $size
 
 proc rtmConnect*(self: var SlackServer, reconnect: bool = false, use_rtm_start:bool = false, proxies: seq[Proxy] = @[], payload: JsonNode = newJObject()): SlackServer {.discardable.} =
   ## Connect or reconnect to the RTM
@@ -274,27 +279,32 @@ proc rtmConnect*(reconnect: bool = false, proxies: seq[Proxy] = @[], payload: Js
     initBotUser(result, loginData["self"])
     parseLoginData(result, loginData)
 
-proc sendToWebSocket(self: var SlackServer, messageJson: JsonNode) {.discardable.} =
+proc sendToWebSocket(self: var SlackServer, messageJson: JsonNode): int {.discardable.} =
   ##Sends a text message to the RTM websockets
   try:
     discard self.websocket.sock.sendText($messageJson, false)
+    return 1
   except:
     self = self.rtmConnect(reconnect=true)
+    return -1 
 
 proc sendRTMMessage*(self: var SlackServer, channel: SlackChannel, message: string, thread: string = "", reply_broadcast: bool = false): int {.discardable.} =
   ## Sends a message to a given channel
 
-  var msg = """{"type": "message", "channel": "$#", "text": "$#"}""" % [$channel, message]
+  let msg = """{"type": "message", "channel": "$#", "text": "$#"}""" % [$channel, message]
 
   var messageJson = parseJson(msg)
 
-  if isNil(thread) == false:
+  let isThread = isNil(thread) == false
+
+  if isThread:
     messageJson["thread_ts"] = %* thread
     if reply_broadcast:
       messageJson["reply_broadcast"] = %* true
 
   #Send the message to be sent via the websocket
-  self.sendToWebSocket(messageJson)
+  discard self.sendToWebSocket(messageJson)
+  return 1
 
 proc apiCall*(self: SlackServer, request: string, timeout: int, payload: JsonNode = newJObject()): SlackMessage = 
   #[
@@ -318,6 +328,7 @@ proc websocketSafeRead*(self: SlackServer): Future[string] {.async.} =
       of Opcode.Cont:
         #Continued frame, concat until 0x1 comes in
         result.add(data.data)
+        result.add("\n")
         continue
       of Opcode.Text:
         return data.data
