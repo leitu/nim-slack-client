@@ -96,4 +96,5 @@ proc `$`*(C: ChangeStatus): string =
       result = "IM Created"
     of 3:
       result = "Team Join"
-
+    else:
+      echo "failed mapping"

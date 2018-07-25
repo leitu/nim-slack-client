@@ -14,8 +14,8 @@ let config_file_path = joinPath(config_dir, config_file_name)
 
 proc defaultConfig(): Config =
   result.WsPort = "443"
-  result.BotName = "sodabot"
-  result.BotEmail = "ryanc@signiq.com"
+  result.BotName = "lt"
+  result.BotEmail = "test@gmail.com"
   result.BotTimeZone= "UTC"
   result.BotToken = ""
 
@@ -59,10 +59,10 @@ proc slackConfigFilePath*(): string =
 proc getSlackBotToken*(self: Config): string = 
   ## Returns our slack bot token
   var token = ""
-  if isNilOrEmpty(self.BotToken):
+  if (self.BotToken.len == 0):
     token = string(getEnv("SLACK_BOT_TOKEN"))
     echo token
-    if isNilOrEmpty(token):
+    if (token.len == 0):
       echo "No Bot Token set in config and no SLACK_BOT_TOKEN environment variable"
       quit(1)
   else:

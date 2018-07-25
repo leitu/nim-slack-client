@@ -109,7 +109,7 @@ proc processChanges(self: var SlackClient, data: JsonNode): ChangeStatus {.disca
   return ChangeStatus.noChange
 
 proc isValidChannel*(self: SlackClient, channelName: string): bool =
-  return not isNil findChannelByID(
+  return not isNil findChannelById(
     channel_id = channelName,
     server=self.server)
 

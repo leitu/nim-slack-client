@@ -6,7 +6,7 @@
 #read: (opcode: Text, data: {"type":"desktop_notification","title":"SignIQ","subtitle":"bottystuff","msg":"1504772511.000007","content":"ryanc: @sodabot WOW","channel":"G64HV5E0Y","launchUri":"slack:\/\/channel?id=G64HV5E0Y&message=1504772511000007&team=T03DRH8QZ","avatarImage":"https:\/\/avatars.slack-edge.com\/2017-08-02\/221029099876_496046da12c5ab7c9d86_192.jpg","ssbFilename":"knock_brush.mp3","imageUri":null,"is_shared":false,"event_ts":"1504772511.000132"})
 ##
 
-import sequtils, json, lists
+import sequtils, json, lists, strutils
 import asyncnet, asyncdispatch
 import nimslackclient/client, nimslackclient/server
 import nimslackclient/slacktypes
@@ -53,30 +53,31 @@ import nimslackclient/slacktypes
 proc server(slackClient: SlackClient) {.async.} =
   while true:
     var message = await slackClient.rtmRead()
+    echo message
     if len(message) > 0:
       for line in message:
-        echo $line["type"]
-        if line["type"].str == "message":
-          echo "MESSAGE"
-          var channel = line["channel"]
-          var validChannel = slackClient.isValidChannel($channel)
-          if validChannel:
-            echo "VALID CHANNEL " & $channel
-          else:
-            echo $channel & " IS NOT A VALID CHANNEL"
-            for ch in slackClient.server.channels.items:
-              echo $ch.name
-          if validChannel:
-            echo "SENDING MESSAGE"
-            discard slackClient.sendRTMMessage(
-              channel = $channel,
-              message = $line)
-            
-            
-
-    
-
-
+        echo line
+        if line.hasKey("type"):
+          if line["type"].str == "message":
+            echo "MESSAGE"
+            var channel = line["channel"].getStr
+            var validChannel = slackClient.isValidChannel($channel)
+            if validChannel:
+              echo "VALID CHANNEL " & $channel
+            else:
+              echo $channel & " IS NOT A VALID CHANNEL"
+              for ch in slackClient.server.channels.items:
+                echo $ch.name
+            if validChannel:
+              echo "SENDING MESSAGE"
+              discard slackClient.sendRTMMessage(
+                channel = $channel,
+                message = $line)
+        #[elif line.hasKey("ok"):
+          echo "hi"]#
+        else:
+          echo "This is dummy test"
+       
 
 var slackClient = newSlackClient("", true, @[])
 asyncCheck server(slackClient)

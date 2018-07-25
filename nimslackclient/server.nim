@@ -68,10 +68,10 @@ proc appendUserAgent*(self: SlackServer, name, version: string): SlackServer =
 
 proc didInitSucceed(response: JsonNode): bool = 
   ##Checks to see if the initial login request succeeded
-  response["ok"].getBVal()
+  response["ok"].getBool()
 
 proc buildSlackUri(wsUri: Uri, config: Config): Uri =
-  result = parseUri(format("$#://$#:$#$#$#", wsUri.scheme, wsUri.hostname, config.WsPort, wsUri.path, (if isNilOrEmpty(wsUri.query): "" else: wsUri.query)).strip())
+  result = parseUri(format("$#://$#:$#$#$#", wsUri.scheme, wsUri.hostname, config.WsPort, wsUri.path, (if (wsUri.query.len == 0): "" else: wsUri.query)).strip())
 
 proc initBotUser(self: var SlackServer, selfData: JsonNode) {.discardable.} = 
   var user = SlackUser(id: selfData["id"].str, name: selfData["name"].str, real_name: self.config.BotName, email: self.config.BotEmail, timezone: Timezone(zone: self.config.BotTimeZone), server: self)
@@ -84,7 +84,7 @@ proc parseChannels*(self: var SlackServer, channels: JsonNode) {.discardable.} =
   for channel in channels:
     #TODO: Some channels are bots or apps, so we need to handle those differently in the future
     try:
-      if channel["is_channel"].getBVal() == false:
+      if channel["is_channel"].getBool() == false:
         continue
 
       let newChannel = initSlackChannel(
@@ -107,7 +107,7 @@ proc parseUsers*(self: SlackServer, users: JsonNode): SlackServer {.discardable.
 
   var counter = 1
   for user in users:
-    if user.hasKey("deleted") and user["deleted"].getBVal() == true:
+    if user.hasKey("deleted") and user["deleted"].getBool() == true:
       echo "Skipping deleted user " & $user["name"].str
       continue
 
@@ -160,7 +160,7 @@ proc rtmConnect*(self: var SlackServer, reconnect: bool = false, use_rtm_start:b
   let config = loadConfig()
 
   var token = self.token
-  if isNilOrEmpty(token):
+  if (token.len == 0):
     token = config.getSlackBotToken()
 
   var request = initSlackRequest(proxies)
@@ -176,7 +176,7 @@ proc rtmConnect*(self: var SlackServer, reconnect: bool = false, use_rtm_start:b
   let serverUrl = buildSlackUri(wsUri, config)
 
   let slackSSLContext = newContext(verifyMode = CVerifyNone)
-  let ws = waitFor newAsyncWebSocket(serverUrl, ctx = slackSSLContext)
+  let ws = waitFor newAsyncWebsocketClient(serverUrl, ctx = slackSSLContext)
 
 
   if reconnect == true:
@@ -224,7 +224,7 @@ proc rtmConnect*(reconnect: bool = false, proxies: seq[Proxy] = @[], payload: Js
   let config = loadConfig()
 
   var token = ""
-  if isNilOrEmpty(token):
+  if (token.len == 0):
     token = config.getSlackBotToken()
 
   let request = initSlackRequest(proxies=proxies)
@@ -242,7 +242,7 @@ proc rtmConnect*(reconnect: bool = false, proxies: seq[Proxy] = @[], payload: Js
   let serverUrl = buildSlackUri(wsUri, config)
 
   let slackSSLContext = newContext(verifyMode = CVerifyNone)
-  let ws = waitFor newAsyncWebSocket(serverUrl, ctx = slackSSLContext)
+  let ws = waitFor newAsyncWebsocketClient(serverUrl, ctx = slackSSLContext)
 
 
   if reconnect == true:
@@ -281,8 +281,10 @@ proc rtmConnect*(reconnect: bool = false, proxies: seq[Proxy] = @[], payload: Js
 
 proc sendToWebSocket(self: var SlackServer, messageJson: JsonNode): int {.discardable.} =
   ##Sends a text message to the RTM websockets
+  echo "This is from send"
+  echo $messageJson
   try:
-    discard self.websocket.sock.sendText($messageJson, false)
+    discard self.websocket.sock.sendText($messageJson, true)
     return 1
   except:
     self = self.rtmConnect(reconnect=true)
@@ -291,16 +293,18 @@ proc sendToWebSocket(self: var SlackServer, messageJson: JsonNode): int {.discar
 proc sendRTMMessage*(self: var SlackServer, channel: SlackChannel, message: string, thread: string = "", reply_broadcast: bool = false): int {.discardable.} =
   ## Sends a message to a given channel
 
-  let msg = """{"type": "message", "channel": "$#", "text": "$#"}""" % [$channel, message]
+  #let msg = """{"type": "message", "channel": "$#", "text": $#}""" % [$channel, message]
+  let msg = """$#""" % message
+  echo msg
 
   var messageJson = parseJson(msg)
 
-  let isThread = isNil(thread) == false
+  #[let isThread = isNil(thread) == false
 
   if isThread:
     messageJson["thread_ts"] = %* thread
     if reply_broadcast:
-      messageJson["reply_broadcast"] = %* true
+      messageJson["reply_broadcast"] = %* true]#
 
   #Send the message to be sent via the websocket
   discard self.sendToWebSocket(messageJson)

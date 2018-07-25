@@ -1,12 +1,12 @@
 # Package
 
-version = "0.1.1"
-author = "TangDongle"
+version = "0.1.2"
+author = "TangDongle, Alex"
 description = "Slack Client API for nim"
 license = "MIT"
 
-requires "nim >= 0.17.2"
-requires "websocket#head", "https://github.com/superfunc/maybe"
+requires "nim >= 0.18.1"
+requires "websocket >= 0.3.1", "https://github.com/superfunc/maybe"
 
 task co, "Compile":
   exec "nim c -d:ssl --out:bin/nimslackclient nimslackclient.nim"
